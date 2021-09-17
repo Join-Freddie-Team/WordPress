@@ -1,9 +1,8 @@
 <?php
+/** Enable W3 Total Cache */
+define('WP_CACHE', true); // Added by W3 Total Cache
 
-if (($_SERVER['HTTP_CLOUDFRONT_FORWARDED_PROTO'] ==
-'https') OR ($_SERVER['HTTP_X_FORWARDED_PROTO'] ==
-'https'))
- {$_SERVER['HTTPS']='on';}
+$_SERVER['HTTPS']='on';
 /** The name of the database for WordPress */
 define('DB_NAME', $_SERVER["WP_DB_NAME"]);
 /** MySQL database username */
