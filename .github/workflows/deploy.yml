@@ -11,9 +11,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PROJECT: "jf"
-      APP: ""
-
 
     steps:
     - name: Extract branch name
