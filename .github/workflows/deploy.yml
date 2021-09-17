@@ -1,0 +1,75 @@
+on:
+  push:
+    tags: 
+      - 'jf-.*'
+
+name: Wordpress CI
+
+jobs:
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    env:
+      PROJECT: "jf"
+      APP: ""
+
+
+    steps:
+    - name: Extract branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/tags/})"
+      id: extract_branch
+
+    - name: Set commit_sha
+      run: |
+        echo TAG_REF=${GITHUB_SHA::7} >> $GITHUB_ENV
+
+    - name: Set env for development
+      if: endsWith(github.ref, '/development')
+      run: |
+        echo INFRANAME=dev >> $GITHUB_ENV
+        echo ENVNAME=development >> $GITHUB_ENV
+    - name: Set env for qa
+      if: endsWith(github.ref, '/qa')
+      run: |
+        echo INFRANAME=dev >> $GITHUB_ENV
+        echo ENVNAME=qa >> $GITHUB_ENV
+    - name: Set env for staging
+      if: endsWith(github.ref, '/staging')
+      run: |
+        echo INFRANAME=prod >> $GITHUB_ENV
+        echo ENVNAME=staging >> $GITHUB_ENV
+    - name: Set env for production
+      if: endsWith(github.ref, '/master')
+      run: |
+        echo INFRANAME=prod >> $GITHUB_ENV
+        echo ENVNAME=production >> $GITHUB_ENV
+
+
+    - name: Get Time
+      id: time
+      uses: nanzm/get-time-action@v1.1
+      with:
+        timeZone: 0
+        format: 'YYYY-MM-DD_HH:mm:ss'
+
+    - uses: actions/checkout@v2
+
+    - name: create zip
+      run: |
+        mkdir cms
+        mv * cms || true
+        echo homepage > index.html
+        zip -r wordpress.zip cms .ebextensions .platform index.html
+
+    - name: Beanstalk Deploy for app
+      uses: einaregilsson/beanstalk-deploy@v16
+      with:
+       aws_access_key: ${{secrets.AWS_ACCESS_KEY}}
+       aws_secret_key: ${{secrets.AWS_SECRET_KEY}}
+       application_name: jf-${{ env.INFRANAME }}-wordpress
+       environment_name: jf-${{ env.INFRANAME }}-wordpress-${{ env.ENVNAME }}
+       region: us-east-1
+       version_label: "wordpress-${{ github.run_number }}-${{ steps.time.outputs.time }}-${{ steps.extract_branch.outputs.branch }}"
+       deployment_package: wordpress.zip
